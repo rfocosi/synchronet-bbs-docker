@@ -13,3 +13,5 @@ COPY GNUmakefile /sbbs/
 
 RUN cd /sbbs && \
     make install SYMLINK=1
+
+CMD ["/sbbs/exec/sbbs"]
