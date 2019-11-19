@@ -16,7 +16,6 @@ docker tag $HUB_REPOSITORY:base $HUB_REPOSITORY:base-$VERSION
 docker push $HUB_REPOSITORY:base-$VERSION
 docker push $HUB_REPOSITORY:base
 
-
 docker build -f Dockerfile-no-xtrn -t $HUB_REPOSITORY:no-xtrn .
 
 [ "$?" != "0" ] && exit 1
