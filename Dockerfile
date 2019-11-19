@@ -3,15 +3,28 @@ FROM debian:bullseye
 ENV SBBSCTRL=/sbbs/ctrl
 
 RUN apt update && \
-    apt install -y build-essential lib32ncurses-dev libnspr4-dev libcrypto++-dev libssl-dev avr-libc liblhasa-dev libxbase64-dev cvs libcap2-dev zip pkg-config python2 wget autoconf
+    apt install -y build-essential libnspr4-dev \
+                   libcrypto++-dev libssl-dev avr-libc liblhasa-dev \
+                   libxbase64-dev libcap2-dev pkg-config autoconf cvs \
+                   lib32ncurses-dev zip python2 \
+                   wget rsync
 
-RUN mkdir /sbbs
+RUN mkdir /sbbs-static
 
-WORKDIR /sbbs
+COPY GNUmakefile /sbbs-static/
 
-COPY GNUmakefile /sbbs/
+RUN cd /sbbs-static && \
+    make install
 
-RUN cd /sbbs && \
-    make install SYMLINK=1
+RUN rm -rf /sbbs-static/src/ && \
+    apt purge -y build-essential pkg-config autoconf cvs && \
+    apt autoremove -y && \
+    apt clean -y
 
-CMD ["/sbbs/exec/sbbs"]
+RUN mkdir /sbbs/
+
+COPY startup.sh /
+
+RUN chmod +x /startup.sh
+
+CMD ["/startup.sh"]
