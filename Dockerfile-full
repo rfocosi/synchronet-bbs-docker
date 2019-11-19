@@ -1,0 +1,12 @@
+FROM rfocosi/synchronet-bbs:base
+
+RUN cd $SBBS_STATIC_DIR && \
+    make all install
+
+RUN rm -rf $SBBS_STATIC_DIR/src/ && \
+    apt purge -y build-essential gcc dpkg-dev g++ libc-dev make \
+                 pkg-config autoconf cvs && \
+    apt autoremove -y && \
+    apt clean -y
+
+WORKDIR /sbbs

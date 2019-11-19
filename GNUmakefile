@@ -9,7 +9,6 @@
 # ----------
 # DEBUG = Set to force a debug build
 # RELEASE = Set to force a release build
-# INSTALL = Set to CLASSIC (All in one sbbs dir) or UNIX (use /etc, /sbin...)
 # SYMLINK = Don't copy binaries, rather create symlinks in $(SBBSDIR)/exec
 # SBBSDIR = Directory to do CLASSIC install to
 # PREFIX = Set to the UNIX base directory to install to
@@ -48,33 +47,27 @@ ifdef bcc
  CCPRE	:=	bcc
  MKFLAGS	+=	bcc=1
 else
- CC		?= CFLAGS=-Wno-implicit	gcc
+ CC		?= gcc
  CCPRE	?= ${shell if [ `echo __clang__ | $(CC) -E - | grep -v '^\#'` != __clang__ ] ; then echo clang ; elif [ `echo __INTEL_COMPILER | $(CC) -E - | grep -v '^\#'` != __INTEL_COMPILER ] ; then echo icc ; else echo gcc ; fi}
  CCPRE := $(lastword $(subst /, ,$(CCPRE)))
 endif
 
-INSTALL	?=	CLASSIC		# Can be CLASSIC or UNIX
 CVSTAG	?=	HEAD		# CVS tag to pull... HEAD means current.
 
 SBBSUSER	?= $(USER)
 SBBSGROUP	?= $(GROUP)
 SBBSCHOWN	:= $(SBBSUSER):$(SBBSGROUP)
 
-ifeq ($(INSTALL),UNIX)
- PREFIX	?=	/usr/local
- MKFLAGS	+=	PREFIX=$(PREFIX)
-else	# Classic Install
- SBBSDIR	?=	$(shell pwd)
- export SBBSDIR
-endif
+SBBSDIR	?=	$(shell pwd)
+export SBBSDIR
 
 # Get OS
 ifndef os
- os             =       $(shell uname)
+ os       =      $(shell uname)
 endif
 os      :=      $(shell echo $(os) | tr '[A-Z]' '[a-z]' | tr ' ' '_')
 
-machine         :=      $(shell if uname -m | egrep -v "(i[3456789]|x)86" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; fi)
+machine   :=  $(shell if uname -m | egrep -v "(i[3456789]|x)86" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; fi)
 machine		:=	$(shell if uname -m | egrep "64" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; else echo $(machine) ; fi)
 ifeq ($(machine),x86_64)
  machine        := 	x64
@@ -132,67 +125,34 @@ ifdef X_PATH
  MKFLAGS	+=	X_PATH=$(X_PATH)
 endif
 
-# Check for GLADE
-ifndef NO_GTK
- ifeq ($(shell pkg-config libglade-2.0 --exists && echo YES),YES)
-  ifeq ($(shell pkg-config gtk+-2.0 --atleast-version=2.6 && echo YES),YES)
-    USE_GLADE	:=	YES
-  endif
- endif
-endif
+all: minimal externals
 
-all: binaries baja externals
+minimal: sbbs3 syncview sexpots baja
 
-binaries:	sbbs3 gtkuseredit gtkchat gtkmonitor gtkuserlist syncview sexpots
+externals: sbj dpoker tbd
 
-externals:	sbj dpoker tbd
-
-sbbs3:	src $(SBBSDIR)/3rdp/dist
-	$(MAKE) -C $(SBBSDIR)/src/sbbs3 $(MKFLAGS)
-
-sexpots:	src
-	$(MAKE) -C $(SBBSDIR)/src/sexpots $(MKFLAGS)
-
-baja:	run sbbs3
+baja: run
 	$(MAKE) -C $(SBBSDIR)/exec $(MKFLAGS) BAJAPATH=$(SBBSDIR)/src/sbbs3/$(CCPRE).$(machine).exe.$(BUILDPATH)/baja
 
-sbj:	run
+sbbs3: src
+	$(MAKE) -C $(SBBSDIR)/src/sbbs3 $(MKFLAGS)
+
+sexpots: src
+	$(MAKE) -C $(SBBSDIR)/src/sexpots $(MKFLAGS)
+
+sbj: xtrn
 	$(MAKE) -C $(SBBSDIR)/xtrn/sbj $(MKFLAGS)
 
-dpoker:	run
+dpoker: xtrn
 	$(MAKE) -C $(SBBSDIR)/xtrn/dpoker $(MKFLAGS) SBBS_SRC=$(SBBSDIR)/src/sbbs3/ XPDEV=$(SBBSDIR)/src/xpdev/
 
-tbd:	run
+tbd: xtrn
 	$(MAKE) -C $(SBBSDIR)/xtrn/tbd $(MKFLAGS) SBBS_SRC=$(SBBSDIR)/src/sbbs3/ XPDEV=$(SBBSDIR)/src/xpdev/
-
-gtkuseredit:	src
-ifdef USE_GLADE
-	$(MAKE) -C $(SBBSDIR)/src/sbbs3/gtkuseredit $(MKFLAGS) SBBS_SRC=$(SBBSDIR)/src/sbbs3/ XPDEV=$(SBBSDIR)/src/xpdev/
-endif
-
-gtkchat:	src
-ifdef USE_GLADE
-	$(MAKE) -C $(SBBSDIR)/src/sbbs3/gtkchat $(MKFLAGS) SBBS_SRC=$(SBBSDIR)/src/sbbs3/ XPDEV=$(SBBSDIR)/src/xpdev/
-endif
-
-gtkmonitor:	src
-ifdef USE_GLADE
-	$(MAKE) -C $(SBBSDIR)/src/sbbs3/gtkmonitor $(MKFLAGS) SBBS_SRC=$(SBBSDIR)/src/sbbs3/ XPDEV=$(SBBSDIR)/src/xpdev/
-endif
-
-gtkuserlist:	src
-ifdef USE_GLADE
-	$(MAKE) -C $(SBBSDIR)/src/sbbs3/gtkuserlist $(MKFLAGS) SBBS_SRC=$(SBBSDIR)/src/sbbs3/ XPDEV=$(SBBSDIR)/src/xpdev/
-endif
 
 syncview:
 	$(MAKE) -C $(SBBSDIR)/src/sbbs3/syncview $(MKFLAGS) SBBS_SRC=$(SBBSDIR)/src/sbbs3/ XPDEV=$(SBBSDIR)/src/xpdev/
 
-install: all
-ifeq ($(INSTALL),UNIX)
-	@echo ERROR: UNIX Install type not yet supported.
-	fail
-else
+install:
 	@echo Installing to $(SBBSDIR)
 	$(INSBIN) $(SBBSDIR)/src/sbbs3/$(CCPRE).$(machine).exe.$(BUILDPATH)/showstat $(SBBSDIR)/exec/showstat
 	$(INSBIN) $(SBBSDIR)/src/sbbs3/$(CCPRE).$(machine).exe.$(BUILDPATH)/readsauce $(SBBSDIR)/exec/readsauce
@@ -227,37 +187,30 @@ else
 	$(INSBIN) $(SBBSDIR)/src/sbbs3/$(CCPRE).$(machine).lib.$(BUILDPATH)/libmailsrvr.so $(SBBSDIR)/exec/libmailsrvr.so
 	$(INSBIN) $(SBBSDIR)/src/sbbs3/$(CCPRE).$(machine).lib.$(BUILDPATH)/libservices.so $(SBBSDIR)/exec/libservices.so
 	$(INSBIN) $(SBBSDIR)/src/sbbs3/$(CCPRE).$(machine).lib.$(BUILDPATH)/libwebsrvr.so $(SBBSDIR)/exec/libwebsrvr.so
-ifdef USE_GLADE
-	$(INSBIN) $(SBBSDIR)/src/sbbs3/gtkuseredit/$(CCPRE).$(machine).exe.$(BUILDPATH)/gtkuseredit $(SBBSDIR)/exec/gtkuseredit
-	$(INSBIN) $(SBBSDIR)/src/sbbs3/gtkuseredit/gtkuseredit.glade $(SBBSDIR)/exec/gtkuseredit.glade
-	$(INSBIN) $(SBBSDIR)/src/sbbs3/gtkmonitor/$(CCPRE).$(machine).exe.$(BUILDPATH)/gtkmonitor $(SBBSDIR)/exec/gtkmonitor
-	$(INSBIN) $(SBBSDIR)/src/sbbs3/gtkmonitor/gtkmonitor.glade $(SBBSDIR)/exec/gtkmonitor.glade
-	$(INSBIN) $(SBBSDIR)/src/sbbs3/gtkmonitor/pixmaps/stock_help-chat.png $(SBBSDIR)/exec/stock_help-chat.png
-	$(INSBIN) $(SBBSDIR)/src/sbbs3/gtkmonitor/pixmaps/stock_mail-send.png $(SBBSDIR)/exec/stock_mail-send.png
-	$(INSBIN) $(SBBSDIR)/src/sbbs3/gtkchat/$(CCPRE).$(machine).exe.$(BUILDPATH)/gtkchat $(SBBSDIR)/exec/gtkchat
-	$(INSBIN) $(SBBSDIR)/src/sbbs3/gtkuserlist/$(CCPRE).$(machine).exe.$(BUILDPATH)/gtkuserlist $(SBBSDIR)/exec/gtkuserlist
-	$(INSBIN) $(SBBSDIR)/src/sbbs3/gtkuserlist/gtkuserlist.glade $(SBBSDIR)/exec/gtkuserlist.glade
-endif
 	$(INSBIN) $(SBBSDIR)/src/sbbs3/syncview/$(CCPRE).$(machine).exe.$(BUILDPATH)/syncview $(SBBSDIR)/exec/syncview
 	$(INSBIN) $(SBBSDIR)/src/sexpots/$(CCPRE).$(machine).exe.$(BUILDPATH)/sexpots $(SBBSDIR)/exec/sexpots
 	-chown -R $(SBBSCHOWN) $(SBBSDIR)
 	-chown -h $(SBBSCHOWN) $(SBBSDIR)/exec/*
-endif
 
 # CVS checkout command-line
 CVS_CO = @cd $(SBBSDIR); cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs co -r $(CVSTAG)
 
-src:
+src: lib
 ifndef NOCVS
 	$(CVS_CO) src-sbbs3
 endif
 
 run:
 ifndef NOCVS
-	$(CVS_CO) run-sbbs3
+	$(CVS_CO) ctrl exec node1 node2 node3 node4 text web
 endif
 
-$(SBBSDIR)/3rdp/dist:
+xtrn: run
+ifndef NOCVS
+	$(CVS_CO) xtrn
+endif
+
+lib:
 ifndef NOCVS
 	$(CVS_CO) lib
 endif
