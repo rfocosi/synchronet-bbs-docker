@@ -6,12 +6,18 @@
 
 ## How to use
 
-- Running
+### Configure
+
 ```
-docker run -p 23:23 -p 80:80 -it -v $HOME/sbbs/:/sbbs/ --rm rfocosi/synchronet-bbs:full
+docker run -it -v $HOME/sbbs/:/sbbs/ --rm rfocosi/synchronet-bbs scfg
 ```
 
-- Testing
+### Run
+```
+docker run -p 23:23 -p 80:80 -it -v $HOME/sbbs/:/sbbs/ --rm rfocosi/synchronet-bbs
+```
+
+### Testing
 ```
 telnet 127.0.0.1
 ```

@@ -1,0 +1,2 @@
+#!/bin/bash
+sync-folder && /sbbs/exec/sbbs
