@@ -1,12 +1,12 @@
 #!/bin/bash
 
-if [ "$( df -h | grep -e '^/dev/sdb.\+/sbbs' | wc -l )" == "0" ]; then
+if [ "$( df -h | grep -e '^.\+/sbbs$' | wc -l )" == "0" ]; then
   echo "An external volume is not mounted. Use -v option on your docker's command"
   exit 1
 fi
 
 if [ ! -d /sbbs/ctrl ]; then
   echo "Syncing folder ..."
-  cp -R --preserve=mode,ownership /sbbs-static/* /sbbs/
+  cp -R /sbbs-static/* /sbbs/
   echo "Done."
 fi

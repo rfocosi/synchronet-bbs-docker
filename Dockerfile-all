@@ -1,0 +1,13 @@
+FROM rfocosi/synchronet-bbs:base
+
+ADD src/sbbs-xtrn.tgz $SBBS_STATIC_DIR
+ADD src/sbbs-init-xtrn.tgz $SBBS_STATIC_DIR
+ADD src/sbbs-docs.tgz $SBBS_STATIC_DIR
+
+RUN make -C /sbbs-static/ all install
+
+RUN rm -rf $SBBS_STATIC_DIR/src/ $SBBS_STATIC_DIR/3rdp/ $SBBS_STATIC_DIR/Makefile && \
+    apt purge -y build-essential gcc dpkg-dev g++ libc-dev make \
+                 pkg-config autoconf && \
+    apt autoremove -y && \
+    apt clean -y
